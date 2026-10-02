@@ -1,17 +1,18 @@
-# dsh-link v0.2.0 — 双向跨机远程控制（家里 DSH ↔ 公司 DSH）
+# dsh-link v0.3.0 — 双向跨机远程控制（家里 DSH ↔ 公司 DSH）
 
-> **状态**：✅ 协议层 mock 测试 13/13 通过；✅ 真双机握手测试已联通（UU远程端口映射）。
+> **状态**：✅ 协议层 v0.2.0 兼容；✅ v0.3.0 session 续问已实现（client-side state，server 端 0 改动）；✅ 真双机握手测试已联通（UU远程端口映射）。
+> **v0.3.0 新增**：session 续问（client-side sessionStore，30 分钟 TTL，AI 自动喂 context）
 > **由用户**：插件装到 profile、`pnpm add`、重启 DSH 由用户执行（AI 不擅自动用户级配置）。
 
 ## 它做什么
 
-让两台机器上的 DSH agent 互相发任务。跟家里 AI 说「让公司 AI 把 GLBT 部署脚本跑一下」，家里 AI 调 `remote({peer:"company", task:"..."})`，公司机的 DSH headless 跑完后把结果回给家里 AI。
+让两台机器上的 DSH agent 互相发任务，**并能跨多轮对话保持上下文**。跟家里 AI 说「让公司 AI 把 GLBT 部署脚本跑一下」，家里 AI 调 `remote({peer:"company", task:"..."})`，公司机的 DSH headless 跑完后把结果回给家里 AI。追问时 AI 自动传 `session: "<id>"`，插件自动把上次的回复摘要拼接到新 task 前面。
 
 ## 关键设计
 
-- **协议**：HTTP POST + Bearer token + JSON `{task}`（已验证）
+- **协议**：HTTP POST + Bearer token + JSON `{task}`（已验证，v0.2.0/v0.3.0 wire 完全相同）
 - **跨公网**：靠 UU远程端口映射（或任意 TCP 隧道）—— 不需要公网 IP、不需要 NAT 穿透配置
-- **多轮对话**：每次 `remote` 调用都是 stateless，AI 通过多次调用 + 喂上下文实现追问
+- **Session（v0.3.0 新）**：client-side `sessionStore`，每个 session 记录「对端 / 上次摘要 / 消息数 / TTL」。续问时客户端拼接 context，server 端 0 改动（仍是 stateless one-shot）
 - **配置**：双方约定一个 `token`，写进各自的 `peers[]`
 
 ## 安装
