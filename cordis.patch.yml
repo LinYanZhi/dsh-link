@@ -1,0 +1,29 @@
+# dsh-link bundle patch: bidirectional cross-machine remote-control.
+#
+# Each host runs one dsh-link instance. The `remote` tool lets the local
+# agent command a peer host (home <-> company, or any pair bridged by a TCP
+# tunnel such as UU Remote port mapping) over a token-authenticated HTTP
+# endpoint.
+- insert:
+    - id: dsh-link
+      name: dsh-link/src
+      config:
+        # Named peer endpoints this host can send tasks to.
+        # Format: { name: "<id>", url: "<tunnel URL>", token: "<shared secret>" }
+        # Examples after UU Remote port mapping (see README):
+        #   - name: company
+        #     url: http://127.0.0.1:8123   # UU maps peer:8124 -> local 8123
+        #     token: <SHARED_SECRET>       # real value agreed out-of-band between hosts
+        peers: []
+        # Local listen port for inbound tasks from peers.
+        # Default 8124 — does NOT clash with UU Remote's tunnel-side port 8123.
+        # 0 disables listening (outbound `remote` still works).
+        port: 8124
+        # Token required on inbound requests; empty = accept from LAN only.
+        # MUST match the `token` field on the peer's dsh-link config.
+        token: ""
+        # Local DSH headless command used to execute inbound tasks.
+        # Empty = auto-detect (PC fork source under Code/.github/...; phone container: node bin.js).
+        headlessCmd: []
+        # Remote execution timeout, ms.
+        timeoutMs: 300000

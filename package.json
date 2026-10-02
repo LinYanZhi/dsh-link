@@ -1,0 +1,27 @@
+{
+  "name": "dsh-link",
+  "version": "0.2.0",
+  "description": "Bidirectional cross-machine remote-control for DeepSeek Harness: each host listens on a token-authenticated HTTP port and exposes a `remote` tool that sends a task to a peer, where the peer's own DSH (headless) executes it. Pairs with UU Remote (or any TCP tunnel) to bridge two LAN-only machines.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "echo 'no lint configured; this is a 1-file plugin'"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-tools": "*"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "compatibility": {
+      "dsh": ">=0.1.1-rc.1 <0.3.0",
+      "profiles": ["web", "headless"]
+    }
+  },
+  "license": "MIT"
+}
