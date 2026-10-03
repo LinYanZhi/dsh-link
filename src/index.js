@@ -259,14 +259,20 @@ export function apply(ctx, config) {
         if (!set) { set = new Set(); sessionByPeer.set(peer.name, set) }
         set.add(sessionId)
 
-        return {
-          ok: result.ok === undefined ? true : result.ok,
+        // Strip undefined fields: DSH's tool result serializer rejects
+        // non-lossless JSON (undefined values break the schema validator),
+        // so we build the object with conditional spreads instead of
+        // passing through optional fields that may be undefined.
+        const ok = result.ok === undefined ? true : result.ok
+        const ret = {
+          ok,
           output: result.output,
-          error: result.error,
-          exitCode: result.exitCode,
           sessionId,
           sessionMessageCount: (session?.messageCount || 0) + 1,
         }
+        if (result.error != null) ret.error = String(result.error)
+        if (result.exitCode != null) ret.exitCode = result.exitCode
+        return ret
       } catch (e) {
         peerHealth.set(args.peer, { lastOk: null, lastError: e.message, lastTask: args.task })
         // Don't advance on transport failure; prior summary is still relevant.
