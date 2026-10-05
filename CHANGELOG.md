@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.0 (2026-10-05)
+
+### Added
+- **HMR-based self-upgrade**: `/upgrade` endpoint accepts base64 + sha256 of new src/index.js; atomic write + backup; fork `vendor/hmr/` (already auto-loaded by DSH, see `apps/cli/src/profile-boot.ts:281`) detects the file change, disposes the plugin fiber, re-imports and re-applies — all without restarting DSH. Active `state.json` survives because dispose flushes before reload and apply hydrates after.
+- **`/handshake` endpoint**: returns `{version, capabilities, wire}` so peers can negotiate features before assuming compatibility.
+- **`upgrade_peer` tool**: ship a new version of dsh-link to a peer and trigger its HMR reload from the local model.
+- **`send_file` / `read_file` tools** and **`/file` endpoint**: cross-machine file transfer under a sandbox root (default `<dshHome>/profiles/<profile>/dsh-link-files/`), 10 MB cap, optional sha256 verification.
+- **State persistence (`src/state.js`)**: peerHealth / sessionStore / sessionByPeer serialized to `~/.dsh/profiles/<profile>/dsh-link-state.json` on dispose, hydrated on apply. Survives HMR reloads and DSH restarts.
+- **Subagent-style tool rename**: `remote` / `remote_peers` → `remote_subagent_run` / `remote_subagent_followup` / `remote_subagent_cancel` / `remote_subagent_list`. New `remote_subagent_followup` makes peer follow-ups a first-class call. systemPrompt rewritten so the model treats peers as embedded subagents (mirrors fork `packages/subagent/`'s surface).
+- **cordis.patch.yml HMR snippet** (`docs/snippet-cordis-patch.yml`): the 8-line block home and company machines append to enable HMR watching `dsh-link/src`.
+- **Company-machine setup guide** (`docs/COMPANY-MACHINE-SETUP.md`): plain-language install steps for the human "intermediary" who relays setup commands to the company AI.
+
+### Changed
+- Wire protocol remains a strict superset of v0.3.0: the original `POST /` task endpoint is unchanged, so v0.3.0 peers still work against v0.4.0 endpoints.
+- All registered `remote_*` tool names changed — v0.3.0 callers will see only the new names.
+
+### Known limitations
+- v0.4.0 retains the v0.3.0 11.5-second cold start per `remote_subagent_run` (still spawns a fresh headless each call); persistent cross-restart sessions via subagent-API work in `packages/subagent/` upstream are not bridged here.
+- HMR requires cordis.patch.yml to enable the `hmr` row; without that block DSH keeps HMR loaded but with empty roots and `/upgrade` writes never trigger reload.
+
 ## v0.3.0 (2026-10-03)
 
 ### Added

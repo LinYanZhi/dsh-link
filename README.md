@@ -1,18 +1,25 @@
-# dsh-link v0.3.0 — 双向跨机远程控制（家里 DSH ↔ 公司 DSH）
+# dsh-link v0.4.0 — 双向跨机 subagent 通信 + HMR 自升级 + 文件传输
 
-> **状态**：✅ 协议层 v0.2.0 兼容；✅ v0.3.0 session 续问已实现（client-side state，server 端 0 改动）；✅ 真双机握手测试已联通（UU远程端口映射）。
-> **v0.3.0 新增**：session 续问（client-side sessionStore，30 分钟 TTL，AI 自动喂 context）
-> **由用户**：插件装到 profile、`pnpm add`、重启 DSH 由用户执行（AI 不擅自动用户级配置）。
+> **状态**：✅ v0.2.0 / v0.3.0 wire 协议兼容；✅ 真双机握手测试已联通；✅ **HMR 自升级已实现**（开着 DSH 改 dsh-link，HMR 自动 reload，不影响已建立的连接）；✅ **文件传输已实现**；✅ **subagent 语义已实现**（AI 把对端当嵌入的子代理用）。
+> **v0.4.0 新增**：HMR 自升级（`/upgrade` + `upgrade_peer`）；`/handshake` capability 协商；`send_file` / `read_file`（沙箱 + 10MB 上限）；state.json 持久化（跨 HMR/重启不掉）；工具重命名为 `remote_subagent_*` 让模型自然把它当嵌入的子代理。
+> **由用户**：插件装到 profile、`pnpm add`、cordis.patch.yml 改 hmr row 由用户执行（AI 不擅自动用户级配置）。
 
 ## 它做什么
 
-让两台机器上的 DSH agent 互相发任务，**并能跨多轮对话保持上下文**。跟家里 AI 说「让公司 AI 把 GLBT 部署脚本跑一下」，家里 AI 调 `remote({peer:"company", task:"..."})`，公司机的 DSH headless 跑完后把结果回给家里 AI。追问时 AI 自动传 `session: "<id>"`，插件自动把上次的回复摘要拼接到新 task 前面。
+让两台机器上的 DSH agent 互相把对方当成**嵌入的子代理**用。跟家里 AI 说「让公司 AI 把 GLBT 部署脚本跑一下」，家里 AI 调 `remote_subagent_run({peer:"company", task:"..."})`，公司机的 DSH headless 跑完后把结果回给家里 AI。追问时 AI 调 `remote_subagent_followup({peer, session:"<id>", task:"..."})`，插件自动把上次的回复摘要拼接到新 task 前面。
+
+**v0.4.0 额外能力**：
+- **`upgrade_peer`** —— 把新版 dsh-link 推到对端，对端 HMR 自动 reload，**DSH 不重启 / 连接不中断**
+- **`send_file` / `read_file`** —— 跨机传文件（10MB 上限，沙箱到 `<dshHome>/profiles/<profile>/dsh-link-files/`）
+- **`POST /handshake`** —— 探对端版本和 capabilities
 
 ## 关键设计
 
-- **协议**：HTTP POST + Bearer token + JSON `{task}`（已验证，v0.2.0/v0.3.0 wire 完全相同）
+- **协议**：HTTP POST + Bearer token + JSON（多端点：`/` task、`/upgrade` source 推送、`/handshake` capability、`/file` 传输）
 - **跨公网**：靠 UU远程端口映射（或任意 TCP 隧道）—— 不需要公网 IP、不需要 NAT 穿透配置
-- **Session（v0.3.0 新）**：client-side `sessionStore`，每个 session 记录「对端 / 上次摘要 / 消息数 / TTL」。续问时客户端拼接 context，server 端 0 改动（仍是 stateless one-shot）
+- **Session（v0.3.0+）**：client-side `sessionStore`，每个 session 记录「对端 / 上次摘要 / 消息数 / TTL」，**持久化到 `state.json`，跨 HMR reload / DSH 重启不丢**（v0.4.0 新）
+- **Self-upgrade（v0.4.0 新）**：用 fork `vendor/hmr/` 的 chokidar 监听 `dsh-link/src`，改 src 即热重载；dsh-link 自带 `/upgrade` 端点接受新代码 → atomic write → HMR 自动 dispose + reapply → state.json hydrate
+- **Subagent 语义**：工具重命名为 `remote_subagent_*`，AI 自然把对端当嵌入的子代理（fork `packages/subagent/` 的 fork 原生 subagent 风格对齐）
 - **配置**：双方约定一个 `token`，写进各自的 `peers[]`
 
 ## 安装
@@ -93,8 +100,8 @@ dsh web
 ```
 
 家里 AI 会自动：
-1. 调 `remote_peers({})` 发现可用 peer
-2. 调 `remote({ peer: "company", task: "Run npm test and report results" })`
+1. 调 `remote_subagent_list({})` 发现可用 peer
+2. 调 `remote_subagent_run({ peer: "company", task: "Run npm test and report results" })`
 3. 把公司 AI 的结果告诉你
 
 **追问示例**（多轮）：
@@ -103,7 +110,21 @@ dsh web
 你刚才的结果里有个 test 失败了，能让公司 AI 看看为什么吗？
 ```
 
-AI 会再调一次 `remote(...)`，把上一次的失败信息作为 context 喂给新 task。
+AI 会再调 `remote_subagent_followup({peer, session: "<id>", task: "..."})`，把上一次的失败信息作为 context 喂给新 task。
+
+**v0.4.0 新用法**：
+
+升级对端 dsh-link：
+```
+帮我把公司 dsh-link 升级到 v0.5.0
+```
+家里 AI 读本地 src → base64 → sha256 → `upgrade_peer({peer:"company", payload, checksum, version:"0.5.0"})`。
+
+传文件：
+```
+把公司的 reports/2026-10.md 拉给我
+```
+家里 AI 调 `read_file({peer:"company", path:"reports/2026-10.md"})`。
 
 ---
 
@@ -147,12 +168,20 @@ dsh web    # 重启
 ```
 Code/dsh-link/
 ├── README.md            # 本文件
-├── package.json         # cordis 插件元数据
+├── CHANGELOG.md
+├── package.json         # cordis 插件元数据（name=dsh-link, version, dsh.bundle.patch）
 ├── LICENSE              # MIT
 ├── .gitignore
 ├── cordis.patch.yml     # 默认 bundle 挂载配置
+├── docs/
+│   ├── snippet-cordis-patch.yml          # 家里/公司两边的 cordis.patch.yml 追加片段
+│   └── COMPANY-MACHINE-SETUP.md          # 公司机安装指南（给中间人用）
 └── src/
-    └── index.js         # 插件主体（remote / remote_peers 工具 + HTTP server）
+    ├── index.js         # apply 主入口 + remote_subagent_* 工具 + HTTP 路由分发
+    ├── state.js         # state.json 持久化（dispose flush + apply hydrate）
+    ├── upgrade.js       # /upgrade + /handshake + upgrade_peer 客户端
+    ├── file.js          # /file 端点（沙箱 + size cap）
+    └── subagent-prompt.js  # subagent 风格的 systemPrompt + 工具描述
 ```
 
 ---

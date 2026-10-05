@@ -1,0 +1,31 @@
+# dsh-link v0.4.0 — cordis.patch.yml HMR snippet
+#
+# Append the block below to your profile's cordis.patch.yml so DSH's vendored
+# HMR (fork `vendor/hmr/`, auto-loaded by `apps/cli/src/profile-boot.ts:281`)
+# actually watches `dsh-link/src` and reloads the plugin on file change.
+#
+# This is what makes "开着 DSH 改 dsh-link 不影响连接" possible: HMR detects
+# the write, disposes the plugin fiber, re-imports the new module, and re-applies
+# — all without restarting the DSH host. State survives because `state.json` is
+# flushed before dispose and hydrated on the new apply (see src/state.js).
+#
+# Where to append: ~/.dsh/profiles/<your-profile>/cordis.patch.yml
+# (default profile is `web` → ~/.dsh/profiles/web/cordis.patch.yml)
+#
+# --- copy below ---
+
+# === dsh-link v0.4.0 HMR self-upgrade ===
+# [why]: 2026-10-XX enable fork vendor/hmr to watch dsh-link/src so v0.4.0's
+#        /upgrade endpoint can ship new source without restarting DSH.
+#        Adjust `base` to your machine's workspace root; both home/company
+#        machines should have this block (with their own `base`).
+- insert:
+    - id: hmr
+      disabled: false
+      config:
+        base: 'C:\Users\LinYanZhi\Code'   # ← home machine; company uses its own workspace root
+        root: ['dsh-link/src']
+        debounce: 100
+        ignored: ['**/node_modules', '**/.git', '**/.*']
+
+# --- end copy ---
