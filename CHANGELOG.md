@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0 (2026-10-05)
+
+### Added
+- **Companion plugin `packages/dsh-link-tui-bridge/`** — installs into the `dsh-tui` profile and listens on `127.0.0.1:8125`. Exposes a token-gated, scoped command surface so a peer DSH web instance can command the local TUI's host: `restart-dsh`, `install-plugin`, `remove-plugin`, `read-config`, `list-profiles`, `log-tail`. Exposes a `bridge_command` tool to the local TUI agent for self-driven ops.
+- **`tui_command` tool on dsh-link** — accepts `{peer, command, args}`. Peer must be `kind: "tui"`; the tool posts JSON to the peer's URL and returns the bridge's result. Cross-machine TUI commands work by pointing the `kind: "tui"` peer URL at the same UU-Remote-mapped port as the `kind: "web"` peer (the bridge port is reachable through the same tunnel).
+- **`peers[].kind` config field** — `z.enum(['web', 'tui']).default('web')`. Default `web` keeps every v0.4.0 config compatible; explicit `kind: "tui"` opts into the bridge endpoint shape.
+- **4-AI federation scenario documented in README** — the emergency-restart flow where a remote web asks a remote web to relay through to a remote TUI's bridge for an actual DSH restart.
+
+### Limitations (carry-over from v0.4.0)
+- `restart-dsh` is a `process.exit(0)` — requires external supervision (Task Scheduler / NSSM / systemd) to actually relaunch the process. The bridge does not start the new DSH itself.
+- Bridge peers share the same token as web peers; rotate via cordis.patch.yml on both sides (credentials-store integration deferred).
+
 ## v0.4.0 (2026-10-05)
 
 ### Added

@@ -1,8 +1,8 @@
-# dsh-link v0.4.0 — 双向跨机 subagent 通信 + HMR 自升级 + 文件传输
+# dsh-link v0.5.0 — 4-AI federation: cross-machine + cross-profile
 
-> **状态**：✅ v0.2.0 / v0.3.0 wire 协议兼容；✅ 真双机握手测试已联通；✅ **HMR 自升级已实现**（开着 DSH 改 dsh-link，HMR 自动 reload，不影响已建立的连接）；✅ **文件传输已实现**；✅ **subagent 语义已实现**（AI 把对端当嵌入的子代理用）。
-> **v0.4.0 新增**：HMR 自升级（`/upgrade` + `upgrade_peer`）；`/handshake` capability 协商；`send_file` / `read_file`（沙箱 + 10MB 上限）；state.json 持久化（跨 HMR/重启不掉）；工具重命名为 `remote_subagent_*` 让模型自然把它当嵌入的子代理。
-> **由用户**：插件装到 profile、`pnpm add`、cordis.patch.yml 改 hmr row 由用户执行（AI 不擅自动用户级配置）。
+> **状态**：✅ v0.2.0 / v0.3.0 / v0.4.0 wire 协议兼容；✅ 真双机握手测试已联通；✅ HMR 自升级、文件传输、subagent 语义已实现；✅ **`tui_command` 已实现** —— 家里 web / 公司 web 可远程命令家里 tui / 公司 tui 重启 DSH / 装插件 / 读 config / tail log。
+> **v0.5.0 新增**：companion plugin **`dsh-link-tui-bridge`**（装在 dsh-tui profile，listen 127.0.0.1:8125）；dsh-link peers 支持 `kind: "tui"`；`tui_command` 工具走 `/` 端点转发到 bridge；同机 localhost 直连，跨机走 UU远程端口映射。
+> **由用户**：插件装到 profile、`pnpm add`、cordis.patch.yml 改 hmr row / bridge insert 由用户执行（AI 不擅自动用户级配置）。
 
 ## 它做什么
 
@@ -12,6 +12,10 @@
 - **`upgrade_peer`** —— 把新版 dsh-link 推到对端，对端 HMR 自动 reload，**DSH 不重启 / 连接不中断**
 - **`send_file` / `read_file`** —— 跨机传文件（10MB 上限，沙箱到 `<dshHome>/profiles/<profile>/dsh-link-files/`）
 - **`POST /handshake`** —— 探对端版本和 capabilities
+
+**v0.5.0 额外能力**：
+- **`tui_command`** —— 让家里 web 给家里/公司 **TUI** 发命令（重启 DSH、装插件、读 config、tail log）。靠 companion plugin `dsh-link-tui-bridge`（装在 dsh-tui profile，listen 127.0.0.1:8125）。
+- 4-AI 联邦场景：家里 web 改完 dsh-link → upgrade_peer 推到公司 web → 家里 web 让公司 web 转公司 tui 重启公司 DSH → 干净生效。
 
 ## 关键设计
 
@@ -176,12 +180,18 @@ Code/dsh-link/
 ├── docs/
 │   ├── snippet-cordis-patch.yml          # 家里/公司两边的 cordis.patch.yml 追加片段
 │   └── COMPANY-MACHINE-SETUP.md          # 公司机安装指南（给中间人用）
-└── src/
-    ├── index.js         # apply 主入口 + remote_subagent_* 工具 + HTTP 路由分发
-    ├── state.js         # state.json 持久化（dispose flush + apply hydrate）
-    ├── upgrade.js       # /upgrade + /handshake + upgrade_peer 客户端
-    ├── file.js          # /file 端点（沙箱 + size cap）
-    └── subagent-prompt.js  # subagent 风格的 systemPrompt + 工具描述
+├── src/                 # dsh-link 主包（web profile 装）
+│   ├── index.js         # apply 主入口 + remote_subagent_* + tui_command 工具 + HTTP 路由分发
+│   ├── state.js         # state.json 持久化（dispose flush + apply hydrate）
+│   ├── upgrade.js       # /upgrade + /handshake + upgrade_peer 客户端
+│   ├── file.js          # /file 端点（沙箱 + size cap）
+│   └── subagent-prompt.js  # subagent 风格的 systemPrompt + 工具描述
+└── packages/
+    └── dsh-link-tui-bridge/    # companion plugin（dsh-tui profile 装）
+        ├── README.md
+        ├── package.json
+        └── src/
+            └── index.js         # 127.0.0.1:8125 + scoped bridge commands
 ```
 
 ---
