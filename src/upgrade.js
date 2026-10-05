@@ -30,7 +30,7 @@ import { homedir } from 'node:os'
 const require = createRequire(import.meta.url)
 const { request: httpRequest } = require('node:http')
 
-export const DSH_LINK_VERSION = '0.4.0'
+export const DSH_LINK_VERSION = '0.5.0'
 export const DSH_LINK_CAPABILITIES = [
   'remote_subagent_run',
   'remote_subagent_followup',
@@ -40,6 +40,7 @@ export const DSH_LINK_CAPABILITIES = [
   'read_file',
   'upgrade_peer',
   'state_persistence',
+  'tui_command',
 ]
 export const MAX_UPGRADE_BYTES = 1 * 1024 * 1024
 export const MAX_FILE_BYTES = 10 * 1024 * 1024

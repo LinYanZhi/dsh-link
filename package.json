@@ -1,6 +1,6 @@
 {
   "name": "dsh-link",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Bidirectional cross-machine remote-control for DeepSeek Harness: each host listens on a token-authenticated HTTP port and exposes a `remote` tool that sends a task to a peer, where the peer's own DSH (headless) executes it. Pairs with UU Remote (or any TCP tunnel) to bridge two LAN-only machines.",
   "type": "module",
   "main": "src/index.js",

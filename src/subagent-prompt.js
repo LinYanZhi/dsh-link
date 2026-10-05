@@ -54,3 +54,10 @@ export const UPGRADE_TOOL_DESCRIPTIONS = {
     'sha256 `checksum` of the decoded bytes, the target `version` label, and an optional `dryRun` to verify ' +
     'checksum without writing.',
 }
+
+export const TUI_COMMAND_TOOL_DESCRIPTION =
+  'Run a scoped command on a peer DSH TUI via dsh-link-tui-bridge (kind=tui peer). ' +
+  'Targets: restart-dsh, install-plugin, remove-plugin, read-config, list-profiles, log-tail. ' +
+  'Use for cross-machine DSH ops — e.g. emergency restart after a code push, or installing ' +
+  'a plugin into a profile on the remote machine. Bound to 127.0.0.1 on the peer; never exposes ' +
+  'arbitrary code execution.'
