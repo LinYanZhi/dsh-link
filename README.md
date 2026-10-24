@@ -1,5 +1,7 @@
 # dsh-link v0.5.0 — 4-AI federation: cross-machine + cross-profile
 
+> **⛔ 已封档（2026-10-24）**：本仓是历史实现，已由 [`dsh-mesh`](https://github.com/LinYanZhi/dsh-mesh) **完全取代**（2026-10-19 起：两机四实例 AI 网络、delegate 跨机委托、self-update、cluster verify）。仓库已设为 archived，只作历史参考，不再维护。需要跨机协作请用 dsh-mesh。
+>
 > **状态**：✅ v0.2.0 / v0.3.0 / v0.4.0 wire 协议兼容；✅ 真双机握手测试已联通；✅ HMR 自升级、文件传输、subagent 语义已实现；✅ **`tui_command` 已实现** —— 家里 web / 公司 web 可远程命令家里 tui / 公司 tui 重启 DSH / 装插件 / 读 config / tail log。
 > **v0.5.0 新增**：companion plugin **`dsh-link-tui-bridge`**（装在 dsh-tui profile，listen 127.0.0.1:8125）；dsh-link peers 支持 `kind: "tui"`；`tui_command` 工具走 `/` 端点转发到 bridge；同机 localhost 直连，跨机走 UU远程端口映射。
 > **由用户**：插件装到 profile、`pnpm add`、cordis.patch.yml 改 hmr row / bridge insert 由用户执行（AI 不擅自动用户级配置）。
